@@ -5,6 +5,7 @@ Release:          0
 Group:            libs
 License:          Apache License, Version 2.0
 Source0:          %{name}-%{version}.tar.gz
+Source1001: 	smartcard-plugin-nfc.manifest
 BuildRequires:    pkgconfig(glib-2.0)
 BuildRequires:    pkgconfig(dlog)
 BuildRequires:    pkgconfig(nfc)
@@ -19,6 +20,7 @@ Smartcard Service plugin nfc
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 
 %package    devel
@@ -57,7 +59,7 @@ cp -af %{_builddir}/%{name}-%{version}/packaging/smartcard-plugin-nfc %{buildroo
 # -n nfc-common-lib -p /sbin/ldconfig
 
 %files
-%manifest smartcard-plugin-nfc.manifest
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
 /usr/lib/se/lib*.so
 /usr/share/license/smartcard-plugin-nfc
