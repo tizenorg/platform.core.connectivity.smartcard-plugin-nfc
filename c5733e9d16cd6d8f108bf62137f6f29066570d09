@@ -1,0 +1,8 @@
+Change-Id: Ic5733e9d16cd6d8f108bf62137f6f29066570d09
+Code-Review+2: Ryan Ware <ware@linux.intel.com>
+Verified+1: Ryan Ware <ware@linux.intel.com>
+Submitted-by: Ryan Ware <ware@linux.intel.com>
+Submitted-at: Mon, 08 Jul 2013 10:07:39 -0700
+Reviewed-on: https://review.tizen.org/gerrit/4439
+Project: platform/core/system/smartcard-plugin-nfc
+Branch: refs/heads/tizen
