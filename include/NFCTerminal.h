@@ -20,8 +20,8 @@
 
 /* standard library header */
 
-/* SLP library header */
-#include "net_nfc_typedef.h"
+/* NFC-Manager header */
+#include "net_nfc.h"
 
 /* local header */
 #include "Terminal.h"

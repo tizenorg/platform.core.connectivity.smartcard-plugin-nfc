@@ -21,10 +21,6 @@
 #include <string.h>
 #include <sys/time.h>
 
-/* SLP library header */
-#include "net_nfc.h"
-#include "net_nfc_internal_se.h"
-
 /* local header */
 #include "Debug.h"
 #include "TerminalInterface.h"
@@ -107,7 +103,7 @@ namespace smartcard_service_api
 		if (initialized == false)
 		{
 #if 0
-			if ((ret = net_nfc_initialize()) == NET_NFC_OK)
+			if ((ret = net_nfc_client_initialize()) == NET_NFC_OK)
 			{
 				if ((ret = net_nfc_set_response_callback(&NFCTerminal::nfcResponseCallback, this)) == NET_NFC_OK)
 				{
@@ -134,10 +130,10 @@ namespace smartcard_service_api
 	{
 		if (isInitialized() && isClosed() == false && seHandle != NULL)
 		{
-			net_nfc_close_internal_secure_element(seHandle, this);
+			net_nfc_client_se_close_internal_secure_element_sync(seHandle);
 		}
 
-		net_nfc_deinitialize();
+		net_nfc_client_deinitialize();
 	}
 
 	bool NFCTerminal::open()
@@ -190,7 +186,7 @@ namespace smartcard_service_api
 
 		if (isInitialized() && isClosed() == false && seHandle != NULL)
 		{
-			if ((ret = net_nfc_close_internal_secure_element(seHandle, this)) == NET_NFC_OK)
+			if ((ret = net_nfc_client_se_close_internal_secure_element_sync(seHandle)) == NET_NFC_OK)
 			{
 #ifndef ASYNC
 				int rv;
@@ -242,7 +238,7 @@ namespace smartcard_service_api
 					response.releaseBuffer();
 #endif
 					net_nfc_create_data(&data, command.getBuffer(), command.getLength());
-					net_nfc_send_apdu(seHandle, data, this);
+					net_nfc_client_se_send_apdu_sync(seHandle, data, NULL);
 #ifndef ASYNC
 					syncLock();
 					rv = waitTimedCondition(3);

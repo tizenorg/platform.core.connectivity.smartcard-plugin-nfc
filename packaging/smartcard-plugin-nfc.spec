@@ -1,6 +1,6 @@
 Name:             smartcard-plugin-nfc
 Summary:          Smartcard plugin nfc
-Version:          0.0.3
+Version:          0.0.4
 Release:          0
 Group:            libs
 License:          Apache License, Version 2.0
@@ -8,7 +8,7 @@ Source0:          %{name}-%{version}.tar.gz
 Source1001: 	smartcard-plugin-nfc.manifest
 BuildRequires:    pkgconfig(glib-2.0)
 BuildRequires:    pkgconfig(dlog)
-BuildRequires:    pkgconfig(nfc)
+BuildRequires:    nfc-client-lib-devel
 BuildRequires:    pkgconfig(smartcard-service-common)
 BuildRequires:    cmake
 BuildRequires:    gettext-tools
@@ -51,12 +51,6 @@ cp -af %{_builddir}/%{name}-%{version}/packaging/smartcard-plugin-nfc %{buildroo
 
 %postun
 /sbin/ldconfig
-
-#%post
-# -n nfc-common-lib -p /sbin/ldconfig
-
-#%postun
-# -n nfc-common-lib -p /sbin/ldconfig
 
 %files
 %manifest %{name}.manifest
