@@ -14,13 +14,12 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR} SRCS)
 #MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs_common REQUIRED dlog smartcard-service-common nfc)
+pkg_check_modules(pkgs_common REQUIRED glib-2.0 dlog smartcard-service-common capi-network-nfc)
 
 FOREACH(flag ${pkgs_common_CFLAGS})
 	SET(EXTRA_CXXFLAGS "${EXTRA_CXXFLAGS} ${flag}")
 ENDFOREACH(flag)
 
-#SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -finstrument-functions")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_CXXFLAGS}")
 #SET(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 #SET(CMAKE_C_FLAGS_RELEASE "-O2")
