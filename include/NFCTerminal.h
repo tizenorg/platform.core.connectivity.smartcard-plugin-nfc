@@ -13,15 +13,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
-
 #ifndef NFCTERMINAL_H_
 #define NFCTERMINAL_H_
 
 /* standard library header */
 
-/* NFC-Manager header */
-#include "net_nfc.h"
+/* Tizen library header */
+#include "nfc.h"
 
 /* local header */
 #include "Terminal.h"
@@ -33,38 +31,32 @@ namespace smartcard_service_api
 	{
 	private:
 		PMutex mutex;
-		net_nfc_target_handle_h seHandle;
+		nfc_se_h seHandle;
+		bool opening;
 		bool closed;
-		/* temporary data for sync function */
-		ByteArray response;
-		int error;
 
 		NFCTerminal();
 		~NFCTerminal();
 
-		static void nfcResponseCallback(net_nfc_message_e message, net_nfc_error_e result, void *data , void *userContext, void *transData);
+		bool checkClosed();
 
 	public:
-
 		static NFCTerminal *getInstance();
 
 		bool initialize();
 		void finalize();
 
 		bool open();
-		bool isClosed();
+		bool isClosed() const;
 		void close();
 
-		bool isSecureElementPresence();
+		bool isSecureElementPresence() const;
 
-		int transmitSync(ByteArray command, ByteArray &response);
+		int transmitSync(const ByteArray &command, ByteArray &response);
 		int getATRSync(ByteArray &atr);
 
-		int transmit(ByteArray command, terminalTransmitCallback callback, void *userParam) { return -1; };
+		int transmit(const ByteArray &command, terminalTransmitCallback callback, void *userParam) { return -1; };
 		int getATR(terminalGetATRCallback callback, void *userParam) { return -1; }
-
-		friend void nfcResponseCallback(net_nfc_message_e message, net_nfc_error_e result, void *data , void *userContext, void *transData);
 	};
-
 } /* namespace smartcard_service_api */
 #endif /* NFCTERMINAL_H_ */
