@@ -32,13 +32,11 @@ namespace smartcard_service_api
 	private:
 		PMutex mutex;
 		nfc_se_h seHandle;
-		bool opening;
-		bool closed;
+		bool present;
+		int referred;
 
 		NFCTerminal();
 		~NFCTerminal();
-
-		bool checkClosed();
 
 	public:
 		static NFCTerminal *getInstance();
@@ -47,16 +45,15 @@ namespace smartcard_service_api
 		void finalize();
 
 		bool open();
-		bool isClosed() const;
 		void close();
 
-		bool isSecureElementPresence() const;
+		bool isSecureElementPresence() const { return present; }
 
 		int transmitSync(const ByteArray &command, ByteArray &response);
 		int getATRSync(ByteArray &atr);
 
-		int transmit(const ByteArray &command, terminalTransmitCallback callback, void *userParam) { return -1; };
-		int getATR(terminalGetATRCallback callback, void *userParam) { return -1; }
+		int transmit(const ByteArray &command, terminalTransmitCallback callback, void *userParam) { return SCARD_ERROR_NOT_SUPPORTED; };
+		int getATR(terminalGetATRCallback callback, void *userParam) { return SCARD_ERROR_NOT_SUPPORTED; }
 	};
 } /* namespace smartcard_service_api */
 #endif /* NFCTERMINAL_H_ */

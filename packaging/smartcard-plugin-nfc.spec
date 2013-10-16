@@ -1,6 +1,6 @@
 Name:             smartcard-plugin-nfc
 Summary:          Smartcard plugin nfc
-Version:          0.0.9
+Version:          0.0.10
 Release:          0
 Group:            Network & Connectivity/NFC
 License:          Apache-2.0

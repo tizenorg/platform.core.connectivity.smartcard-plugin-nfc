@@ -22,6 +22,7 @@
 #include <glib.h>
 
 /* local header */
+#include "smartcard-types.h"
 #include "Debug.h"
 #include "TerminalInterface.h"
 #include "NFCTerminal.h"
@@ -76,15 +77,12 @@ EXPORT_API void destroy_instance(void *instance)
 
 namespace smartcard_service_api
 {
-	NFCTerminal::NFCTerminal() : Terminal(),
-	seHandle(NULL), opening(false), closed(true)
+	NFCTerminal::NFCTerminal() : Terminal(), seHandle(NULL),
+		present(false), referred(0)
 	{
 		name = (char *)se_name;
 
-		if (initialize())
-		{
-			open();
-		}
+		initialize();
 	}
 
 	NFCTerminal *NFCTerminal::getInstance()
@@ -110,6 +108,11 @@ namespace smartcard_service_api
 		if (ret == NFC_ERROR_NONE)
 		{
 			initialized = true;
+
+			if (open() == true) {
+				present = true;
+				close();
+			}
 		}
 		else
 		{
@@ -123,33 +126,24 @@ namespace smartcard_service_api
 	{
 		int ret;
 
-		if (isInitialized() && isClosed() == false && seHandle != NULL)
-		{
-			close();
-		}
-
-		ret = nfc_manager_deinitialize();
-		if (ret != NFC_ERROR_NONE)
-		{
-			_ERR("nfc_manager_deinitialize failed [%d]", ret);
-		}
-	}
-
-	bool NFCTerminal::checkClosed()
-	{
-		bool result = false;
-
-		SCOPE_LOCK(mutex)
-		{
-			result = (isInitialized() == true &&
-					isClosed() == true && opening == false);
-
-			if (result == true) {
-				opening = true;
+		if (isClosed() == false) {
+			/* close now */
+			ret = nfc_se_close_secure_element(seHandle);
+			if (ret == NFC_ERROR_NONE) {
+				seHandle = NULL;
+				closed = true;
+				referred = 0;
+			} else {
+				_ERR("nfc_se_close_secure_element failed [%d]", ret);
 			}
 		}
 
-		return result;
+		ret = nfc_manager_deinitialize();
+		if (ret == NFC_ERROR_NONE) {
+			initialized = false;
+		} else {
+			_ERR("nfc_manager_deinitialize failed [%d]", ret);
+		}
 	}
 
 	bool NFCTerminal::open()
@@ -158,20 +152,21 @@ namespace smartcard_service_api
 
 		_BEGIN();
 
-		if (checkClosed() == true)
-		{
-			ret = nfc_se_open_secure_element(NFC_SE_TYPE_ESE,
+		if (isInitialized()) {
+			if (referred == 0) {
+				ret = nfc_se_open_secure_element(NFC_SE_TYPE_ESE,
 					&seHandle);
-			if (ret == NFC_ERROR_NONE)
-			{
-				closed = false;
-			}
-			else
-			{
-				_ERR("net_nfc_client_se_open_internal_secure_element_sync failed [%d]", ret);
+				if (ret == NFC_ERROR_NONE) {
+					closed = false;
+					referred++;
+				} else {
+					_ERR("nfc_se_open_secure_element failed [%d]", ret);
+				}
+			} else {
+				referred++;
 			}
 
-			opening = false;
+			_DBG("reference count [%d]", referred);
 		}
 
 		_END();
@@ -185,29 +180,30 @@ namespace smartcard_service_api
 
 		_BEGIN();
 
-		if (isInitialized() && isClosed() == false)
+		if (isInitialized())
 		{
-			ret = nfc_se_close_secure_element(seHandle);
-			if (ret == NFC_ERROR_NONE) {
-			} else  {
-				_ERR("net_nfc_client_se_close_internal_secure_element_sync failed [%d]", ret);
+			if (referred <= 1) {
+				ret = nfc_se_close_secure_element(seHandle);
+				if (ret == NFC_ERROR_NONE) {
+					seHandle = NULL;
+					closed = true;
+					referred = 0;
+				} else {
+					_ERR("nfc_se_close_secure_element failed [%d]", ret);
+				}
+			} else {
+				referred--;
 			}
 
-			seHandle = NULL;
-			closed = true;
+			_DBG("reference count [%d]", referred);
 		}
 
 		_END();
 	}
 
-	bool NFCTerminal::isClosed() const
-	{
-		return closed;
-	}
-
 	int NFCTerminal::transmitSync(const ByteArray &command, ByteArray &response)
 	{
-		int rv = -1;
+		int rv = SCARD_ERROR_NOT_INITIALIZED;
 
 		_BEGIN();
 
@@ -215,28 +211,25 @@ namespace smartcard_service_api
 		{
 			if (command.size() > 0)
 			{
-				SCOPE_LOCK(mutex)
+				uint8_t *resp = NULL;
+				uint32_t resp_len;
+
+				rv = nfc_se_send_apdu(seHandle,
+					(uint8_t *)command.getBuffer(),
+					command.size(),
+					&resp,
+					&resp_len);
+				if (rv == NFC_ERROR_NONE &&
+					resp != NULL)
 				{
-					uint8_t *resp = NULL;
-					uint32_t resp_len;
+					response.assign(resp, resp_len);
 
-					rv = nfc_se_send_apdu(seHandle,
-							(uint8_t *)command.getBuffer(),
-							command.size(),
-							&resp,
-							&resp_len);
-					if (rv == NFC_ERROR_NONE &&
-							resp != NULL)
-					{
-						response.assign(resp, resp_len);
-
-						g_free(resp);
-					}
-					else
-					{
-						_ERR("net_nfc_send_apdu_sync failed, [%d]", rv);
-					}
+					g_free(resp);
 				}
+				else
+				{
+					_ERR("net_nfc_send_apdu_sync failed, [%d]", rv);
+ 				}
 			}
 			else
 			{
@@ -261,23 +254,18 @@ namespace smartcard_service_api
 
 		if (isClosed() == false)
 		{
-			SCOPE_LOCK(mutex)
+			uint8_t *temp = NULL;
+			uint32_t temp_len;
+
+			rv = nfc_se_get_atr(seHandle, &temp, &temp_len);
+			if (rv == NFC_ERROR_NONE && temp != NULL)
 			{
-				uint8_t *temp = NULL;
-				uint32_t temp_len;
-
-				rv = nfc_se_get_atr(seHandle, &temp, &temp_len);
-				if (rv == NFC_ERROR_NONE &&
-						temp != NULL)
-				{
-					atr.assign(temp, temp_len);
-
-					g_free(temp);
-				}
-				else
-				{
-					_ERR("net_nfc_client_se_get_atr_sync failed");
-				}
+				atr.assign(temp, temp_len);
+				g_free(temp);
+			}
+			else
+			{
+				_ERR("net_nfc_client_se_get_atr_sync failed");
 			}
 		}
 		else
@@ -288,10 +276,5 @@ namespace smartcard_service_api
 		_END();
 
 		return rv;
-	}
-
-	bool NFCTerminal::isSecureElementPresence() const
-	{
-		return (isClosed() == false);
 	}
 } /* namespace smartcard_service_api */
