@@ -20,6 +20,7 @@
 
 /* Tizen library header */
 #include "nfc.h"
+#include "nfc_internal.h"
 
 /* local header */
 #include "Terminal.h"

@@ -128,13 +128,13 @@ namespace smartcard_service_api
 
 		if (isClosed() == false) {
 			/* close now */
-			ret = nfc_se_close_secure_element(seHandle);
+			ret = nfc_se_close_secure_element_internal(seHandle);
 			if (ret == NFC_ERROR_NONE) {
 				seHandle = NULL;
 				closed = true;
 				referred = 0;
 			} else {
-				_ERR("nfc_se_close_secure_element failed [%d]", ret);
+				_ERR("nfc_se_close_secure_element_internal failed [%d]", ret);
 			}
 		}
 
@@ -154,13 +154,13 @@ namespace smartcard_service_api
 
 		if (isInitialized()) {
 			if (referred == 0) {
-				ret = nfc_se_open_secure_element(NFC_SE_TYPE_ESE,
+				ret = nfc_se_open_secure_element_internal(NFC_SE_TYPE_ESE,
 					&seHandle);
 				if (ret == NFC_ERROR_NONE) {
 					closed = false;
 					referred++;
 				} else {
-					_ERR("nfc_se_open_secure_element failed [%d]", ret);
+					_ERR("nfc_se_open_secure_element_internal failed [%d]", ret);
 				}
 			} else {
 				referred++;
@@ -183,13 +183,13 @@ namespace smartcard_service_api
 		if (isInitialized())
 		{
 			if (referred <= 1) {
-				ret = nfc_se_close_secure_element(seHandle);
+				ret = nfc_se_close_secure_element_internal(seHandle);
 				if (ret == NFC_ERROR_NONE) {
 					seHandle = NULL;
 					closed = true;
 					referred = 0;
 				} else {
-					_ERR("nfc_se_close_secure_element failed [%d]", ret);
+					_ERR("nfc_se_close_secure_element_internal failed [%d]", ret);
 				}
 			} else {
 				referred--;
@@ -214,7 +214,7 @@ namespace smartcard_service_api
 				uint8_t *resp = NULL;
 				uint32_t resp_len;
 
-				rv = nfc_se_send_apdu(seHandle,
+				rv = nfc_se_send_apdu_internal(seHandle,
 					(uint8_t *)command.getBuffer(),
 					command.size(),
 					&resp,
@@ -228,7 +228,7 @@ namespace smartcard_service_api
 				}
 				else
 				{
-					_ERR("net_nfc_send_apdu_sync failed, [%d]", rv);
+					_ERR("nfc_se_send_apdu_internal failed, [%d]", rv);
  				}
 			}
 			else
@@ -257,7 +257,7 @@ namespace smartcard_service_api
 			uint8_t *temp = NULL;
 			uint32_t temp_len;
 
-			rv = nfc_se_get_atr(seHandle, &temp, &temp_len);
+			rv = nfc_se_get_atr_internal(seHandle, &temp, &temp_len);
 			if (rv == NFC_ERROR_NONE && temp != NULL)
 			{
 				atr.assign(temp, temp_len);
@@ -265,7 +265,7 @@ namespace smartcard_service_api
 			}
 			else
 			{
-				_ERR("net_nfc_client_se_get_atr_sync failed");
+				_ERR("nfc_se_get_atr_internal failed");
 			}
 		}
 		else
