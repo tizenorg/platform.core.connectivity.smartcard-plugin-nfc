@@ -1,6 +1,6 @@
 Name:             smartcard-plugin-nfc
 Summary:          Smartcard plugin nfc
-Version:          0.0.10
+Version:          0.0.11
 Release:          0
 Group:            Network & Connectivity/NFC
 License:          Apache-2.0
@@ -12,6 +12,7 @@ BuildRequires:    pkgconfig(glib-2.0)
 BuildRequires:    pkgconfig(dlog)
 BuildRequires:    pkgconfig(smartcard-service-common)
 BuildRequires:    pkgconfig(capi-network-nfc)
+BuildRequires:    pkgconfig(vconf)
 Requires(post):   /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
