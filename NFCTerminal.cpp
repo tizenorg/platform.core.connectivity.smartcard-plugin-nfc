@@ -56,7 +56,12 @@ EXPORT_API const char *get_name()
 
 EXPORT_API void *create_instance()
 {
-	return (void *)NFCTerminal::getInstance();
+	int value;
+	
+	if (vconf_get_bool(VCONFKEY_NFC_ESE_DISABLE, &value) < 0)
+		return NULL;
+
+	return value ? NULL : (void *)NFCTerminal::getInstance();
 }
 
 EXPORT_API void destroy_instance(void *instance)
@@ -97,6 +102,63 @@ namespace smartcard_service_api
 		finalize();
 	}
 
+	void NFCTerminal::onActivationChanged(bool activated, void *userData)
+	{
+		NFCTerminal *instance = (NFCTerminal *)userData;
+
+		_ERR("nfc state changed [%s]", activated ? "activated" : "deactivated");
+
+		if (activated == true) {
+			if (instance->present == false) {
+				if (instance->open() == true) {
+					instance->present = true;
+					instance->close();
+
+					if (instance->statusCallback != NULL) {
+						instance->statusCallback(
+							instance->getName(),
+							NOTIFY_SE_AVAILABLE,
+							SCARD_ERROR_OK,
+							NULL);
+					}
+				} else {
+					_ERR("ese open failed");
+				}
+			} else {
+				/* okay */
+			}
+		} else {
+			if (instance->present == true) {
+				instance->present = false;
+
+				if (instance->isClosed() == false) {
+					int ret;
+
+					/* close now */
+					ret = nfc_se_close_secure_element_internal(
+						instance->seHandle);
+					if (ret != NFC_ERROR_NONE) {
+						_ERR("nfc_se_close_secure_element failed [%d]", ret);
+					}
+
+					instance->seHandle = NULL;
+					instance->closed = true;
+					instance->referred = 0;
+				}
+
+				if (instance->statusCallback != NULL) {
+					instance->statusCallback(
+						instance->getName(),
+						NOTIFY_SE_NOT_AVAILABLE,
+						SCARD_ERROR_OK,
+						NULL);
+				}
+			} else {
+				/* okay */
+			}
+		}
+	}
+
 	bool NFCTerminal::initialize()
 	{
 		int ret;
@@ -104,14 +166,26 @@ namespace smartcard_service_api
 		if (initialized == true)
 			return initialized;
 
-		ret = nfc_manager_initialize_sync();
+		ret = nfc_manager_initialize();
 		if (ret == NFC_ERROR_NONE)
 		{
 			initialized = true;
 
-			if (open() == true) {
-				present = true;
-				close();
+			ret = nfc_manager_set_activation_changed_cb(
+				&NFCTerminal::onActivationChanged, this);
+			if (ret != NFC_ERROR_NONE) {
+				_ERR("nfc_manager_set_activation_changed_cb failed, [%d]", ret);
+			}
+
+			if (nfc_manager_is_activated() == true) {
+				if (open() == true) {
+					present = true;
+					close();
+				} else {
+					_ERR("ese open failed");
+				}
+			} else {
+				_ERR("nfc is not activated.");
 			}
 		}
 		else
@@ -129,14 +203,18 @@ namespace smartcard_service_api
 		if (isClosed() == false) {
 			/* close now */
 			ret = nfc_se_close_secure_element_internal(seHandle);
-			if (ret == NFC_ERROR_NONE) {
-				seHandle = NULL;
-				closed = true;
-				referred = 0;
-			} else {
-				_ERR("nfc_se_close_secure_element_internal failed [%d]", ret);
+			if (ret != NFC_ERROR_NONE) {
+				_ERR("nfc_se_close_secure_element failed [%d]", ret);
 			}
+
+			seHandle = NULL;
+			closed = true;
+			referred = 0;
 		}
+
+		present = false;
+
+		nfc_manager_unset_activation_changed_cb();
 
 		ret = nfc_manager_deinitialize();
 		if (ret == NFC_ERROR_NONE) {
@@ -183,6 +261,8 @@ namespace smartcard_service_api
 		if (isInitialized())
 		{
 			if (referred <= 1) {
+				g_usleep(1000000);
+
 				ret = nfc_se_close_secure_element_internal(seHandle);
 				if (ret == NFC_ERROR_NONE) {
 					seHandle = NULL;

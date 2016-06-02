@@ -21,6 +21,7 @@
 /* Tizen library header */
 #include "nfc.h"
 #include "nfc_internal.h"
+#include <vconf.h>
 
 /* local header */
 #include "Terminal.h"
@@ -38,6 +39,8 @@ namespace smartcard_service_api
 
 		NFCTerminal();
 		~NFCTerminal();
+
+		static void onActivationChanged(bool activated, void *userData);
 
 	public:
 		static NFCTerminal *getInstance();

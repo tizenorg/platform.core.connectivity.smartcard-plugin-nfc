@@ -14,7 +14,7 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR} SRCS)
 #MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs_common REQUIRED glib-2.0 dlog smartcard-service-common capi-network-nfc)
+pkg_check_modules(pkgs_common REQUIRED glib-2.0 dlog smartcard-service-common capi-network-nfc vconf)
 
 FOREACH(flag ${pkgs_common_CFLAGS})
 	SET(EXTRA_CXXFLAGS "${EXTRA_CXXFLAGS} ${flag}")
